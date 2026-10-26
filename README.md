@@ -76,7 +76,7 @@ Copy-Item session-review-hook\session-review.ps1 "$HOME\.claude\hooks\"
 ## 훅 사용 예시
 
 1. 평소처럼 Claude Code를 사용하다가 `/exit`로 세션을 끝냅니다.
-2. 확인 창이 뜨면 모델을 고르고 **분석 시작**을 누릅니다. (원치 않으면 **건너뛰기**)
+2. 확인 창이 뜨면 모델과 분석 깊이(effort)를 고르고 **분석 시작**을 누릅니다. (원치 않으면 **건너뛰기**)
 3. 7초~1분 뒤 결과 창이 표시됩니다.
 
 **1. 세션 종료 시 뜨는 확인 창**
@@ -104,3 +104,16 @@ Copy-Item session-review-hook\session-review.ps1 "$HOME\.claude\hooks\"
 ## 제거
 
 `~/.claude/settings.json`의 `hooks.SessionEnd`에서 해당 항목을 지우고 `~/.claude/hooks/session-review.ps1`을 삭제하세요.
+
+## 업데이트 내역
+
+### 2026-10-26
+
+- **분석 깊이(effort) 선택 추가**: 확인 창에서 모델과 함께 effort(`low` ~ `max`)를 고를 수 있습니다. 기본값은 `low`이고, 결과 창 하단에 사용한 모델·effort가 표시됩니다. `claude` CLI의 `--effort` 옵션이 필요합니다.
+- **설치 스크립트 버전 검사**: PowerShell 7.3 미만(Windows 기본 5.1 포함)에서 `install.ps1`을 실행하면 설치를 시작하기 전에 안내 문구를 보여주고 중단합니다. (이전에는 5.1에서 파일만 내려받고 훅 등록은 실패하는 반쪽 설치가 될 수 있었습니다.)
+- **README 보강**: 요구 사항을 "PowerShell 7.3 이상"으로 명시하고, 한 줄 설치는 `pwsh` 창에서 실행하도록 안내를 추가했습니다.
+- **스크린샷 갱신**: 확인 창(effort 선택 포함)과 결과 창 이미지를 새 버전으로 교체했습니다.
+
+### 최초 공개
+
+- 세션 종료 시 한 일 요약과 질문 피드백을 보여주는 `session-review` 훅

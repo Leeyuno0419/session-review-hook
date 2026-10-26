@@ -21,19 +21,21 @@ Claude Code 세션이 끝나면 대화를 분석해 **한 일 요약**과 **질�
 | 개선할 점 | 아쉬웠던 점 + 더 좋은 질문 예시 |
 | 다음엔 이렇게 | 다음 세션에 바로 쓸 팁 |
 
-- 분석 전에 **실행 여부와 모델(Sonnet / Opus / Haiku)을 직접 고릅니다.** 분석은 토큰을 소모하므로 자동으로 실행되지 않습니다.
+- 분석 전에 **실행 여부와 모델(Sonnet / Opus / Haiku)과 분석 깊이(effort: low~max)를 직접 고릅니다.** 분석은 토큰을 소모하므로 자동으로 실행되지 않습니다.
 - 질문 없이 끝난 세션에서는 창이 뜨지 않습니다.
 - 훅은 창 프로세스를 분리해 실행하므로 Claude Code 종료를 막지 않습니다.
 - 결과는 `저장` 버튼으로 `.txt`에 저장할 수 있습니다.
 - 분석용 `claude` 세션은 `disableAllHooks`로 실행되어 이 훅이 다시 실행되지 않습니다.
 
-**요구 사항**: Windows 10 이상, [PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`pwsh`), PATH에 잡힌 `claude` CLI
+**요구 사항**: Windows 10 이상, [PowerShell 7.3 이상](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows) (`pwsh`, Windows 기본 "Windows PowerShell 5.1"은 안 됨), PATH에 잡힌 `claude` CLI
 
 **개인정보 주의**: 분석할 때 대화 기록(최대 약 60,000자)이 Claude에 전송됩니다.
 
 ## 훅 설치 명령어
 
-### 방법 1. 한 줄 설치 (PowerShell)
+### 방법 1. 한 줄 설치 (PowerShell 7 `pwsh` 창에서 실행)
+
+> 내용을 먼저 확인하고 싶다면 [install.ps1](install.ps1)을 열어 보거나, 아래 방법 2로 설치하세요.
 
 ```powershell
 irm https://raw.githubusercontent.com/Leeyuno0419/session-review-hook/main/install.ps1 | iex
@@ -94,6 +96,7 @@ Copy-Item session-review-hook\session-review.ps1 "$HOME\.claude\hooks\"
 | 변수 | 기본값 | 설명 |
 | --- | --- | --- |
 | `$Model` | `sonnet` | 확인 창의 기본 선택 모델 (`sonnet` / `opus` / `haiku`) |
+| `$Effort` | `low` | 확인 창의 기본 선택 effort (`low` / `medium` / `high` / `xhigh` / `max`) |
 | `$MaxLogChars` | `60000` | 분석에 보낼 대화 최대 길이 (넘치면 앞 1/4 + 뒤 3/4만 사용) |
 | `$TimeoutSec` | `300` | 분석 최대 대기 시간(초) |
 | 색상 변수 | — | 창 배경·강조색 등 |

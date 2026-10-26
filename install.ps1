@@ -1,7 +1,15 @@
 # session-review 훅 설치: 스크립트를 hooks 폴더에 두고 settings.json 의 SessionEnd 에 등록한다
 $ErrorActionPreference = 'Stop'
 
-$Base      = 'https://raw.githubusercontent.com/Leeyuno0419/session-review-hook/main'
+# Windows 기본 PowerShell 5.1 에서는 아래 ConvertFrom-Json -AsHashtable 이 없어 설치가 중간에 끊긴다 → 시작 전에 막는다
+$v = $PSVersionTable.PSVersion
+if ($v.Major -lt 7 -or ($v.Major -eq 7 -and $v.Minor -lt 3)) {
+    Write-Host "PowerShell 7.3 이상(pwsh)이 필요합니다. 현재: $v" -ForegroundColor Red
+    Write-Host 'pwsh 창에서 다시 실행하세요. (설치: winget install Microsoft.PowerShell)'
+    return
+}
+
+$Base     = 'https://raw.githubusercontent.com/Leeyuno0419/session-review-hook/main'
 $ClaudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
 $HooksDir  = Join-Path $ClaudeDir 'hooks'
 $Script    = Join-Path $HooksDir 'session-review.ps1'

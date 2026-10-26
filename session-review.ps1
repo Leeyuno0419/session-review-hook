@@ -2,6 +2,7 @@
 
 # ── 설정 ─────────────────────────────────────────────
 $Model       = 'sonnet'   # 분석에 쓸 모델
+$Effort      = 'low'      # 분석 effort: low / medium / high / xhigh / max
 $MaxLogChars = 60000      # 분석에 넘길 대화 기록 최대 길이 (넘치면 앞 1/4 + 뒤 3/4만 사용)
 $TimeoutSec  = 300        # 분석 최대 대기 시간
 $Background  = '#1F1E1C'  # 창 배경
@@ -90,11 +91,13 @@ $c = { param($hex) [System.Drawing.ColorTranslator]::FromHtml($hex) }
 
 $modelKeys   = @('sonnet', 'opus', 'haiku')
 $modelLabels = @('Sonnet  -  균형형 (기본)', 'Opus  -  가장 정확, 토큰 가장 많이 소모', 'Haiku  -  가장 빠르고 저렴')
+$effortKeys   = @('low', 'medium', 'high', 'xhigh', 'max')
+$effortLabels = @('Low  -  가장 빠름, 토큰 적게 소모 (기본)', 'Medium', 'High', 'Xhigh', 'Max  -  가장 깊게 분석, 토큰 가장 많이 소모')
 $script:go = $false
 
 $ask = New-Object System.Windows.Forms.Form
 $ask.Text = 'Claude Code 세션 리뷰'
-$ask.ClientSize = New-Object System.Drawing.Size(460, 388)
+$ask.ClientSize = New-Object System.Drawing.Size(460, 446)
 $ask.StartPosition = 'CenterScreen'; $ask.FormBorderStyle = 'FixedDialog'; $ask.MaximizeBox = $false; $ask.MinimizeBox = $false
 $ask.BackColor = & $c $Background
 $ask.Font = New-Object System.Drawing.Font('Malgun Gothic', 10)
@@ -108,6 +111,7 @@ function New-AskLabel($text, $font, $color, $y, $h) {
 $lblQ    = New-AskLabel '세션 리뷰를 실행할까요?' (New-Object System.Drawing.Font('Malgun Gothic', 14, [System.Drawing.FontStyle]::Bold)) $TextMain 20 30
 $lblDesc = New-AskLabel "방금 끝난 세션(질문 ${promptCount}개)을 AI가 읽고`n① 한 일 요약  ② 질문 피드백을 정리해 줘요." (New-Object System.Drawing.Font('Malgun Gothic', 10)) $TextDim 58 48
 $lblM    = New-AskLabel '분석에 사용할 모델' (New-Object System.Drawing.Font('Malgun Gothic', 9.5, [System.Drawing.FontStyle]::Bold)) $TextMain 118 22
+$lblE    = New-AskLabel '분석 깊이 (effort)' (New-Object System.Drawing.Font('Malgun Gothic', 9.5, [System.Drawing.FontStyle]::Bold)) $TextMain 186 22
 
 $combo = New-Object System.Windows.Forms.ComboBox
 $combo.DropDownStyle = 'DropDownList'; $combo.FlatStyle = 'Flat'
@@ -116,11 +120,18 @@ $combo.Location = New-Object System.Drawing.Point(24, 144); $combo.Size = New-Ob
 $combo.Items.AddRange($modelLabels)
 $combo.SelectedIndex = [Math]::Max(0, [Array]::IndexOf($modelKeys, $Model))
 
+$comboE = New-Object System.Windows.Forms.ComboBox
+$comboE.DropDownStyle = 'DropDownList'; $comboE.FlatStyle = 'Flat'
+$comboE.BackColor = & $c $Surface; $comboE.ForeColor = & $c $TextMain
+$comboE.Location = New-Object System.Drawing.Point(24, 212); $comboE.Size = New-Object System.Drawing.Size(412, 30)
+$comboE.Items.AddRange($effortLabels)
+$comboE.SelectedIndex = [Math]::Max(0, [Array]::IndexOf($effortKeys, $Effort))
+
 # 주의 문구: 흰 바탕에 어두운 글씨, 핵심 구절은 굵게+밑줄, '주의'만 빨간색
 $warnBox = New-Object System.Windows.Forms.RichTextBox
 $warnBox.ReadOnly = $true; $warnBox.BorderStyle = 'None'; $warnBox.TabStop = $false; $warnBox.ScrollBars = 'None'
 $warnBox.BackColor = [System.Drawing.Color]::White
-$warnBox.Location = New-Object System.Drawing.Point(24, 204); $warnBox.Size = New-Object System.Drawing.Size(412, 104)
+$warnBox.Location = New-Object System.Drawing.Point(24, 262); $warnBox.Size = New-Object System.Drawing.Size(412, 104)
 $warnDark = & $c '#1F1E1C'
 $null = $warnBox.Handle   # 핸들이 있어야 서식(굵게·밑줄)이 적용된다
 function Add-Warn($text, [bool]$key = $false, [single]$size = 10, $color = $warnDark) {
@@ -144,7 +155,7 @@ function Fill-Warn {
 
 function New-AskButton($text, [bool]$primary, $x) {
     $b = New-Object System.Windows.Forms.Button
-    $b.Text = $text; $b.Size = New-Object System.Drawing.Size(120, 36); $b.Location = New-Object System.Drawing.Point($x, 332)
+    $b.Text = $text; $b.Size = New-Object System.Drawing.Size(120, 36); $b.Location = New-Object System.Drawing.Point($x, 390)
     $b.FlatStyle = 'Flat'; $b.Cursor = 'Hand'; $b.ForeColor = & $c $TextMain
     $b.BackColor = & $c $(if ($primary) { $Accent } else { $Background })
     $b.FlatAppearance.BorderColor = & $c $(if ($primary) { $Accent } else { '#4A4843' })
@@ -154,22 +165,23 @@ $btnGo   = New-AskButton '분석 시작' $true 316
 $btnSkip = New-AskButton '건너뛰기' $false 188
 $btnGo.Add_Click({ $script:go = $true; $ask.Close() })
 $btnSkip.Add_Click({ $ask.Close() })
-$ask.Controls.AddRange(@($lblQ, $lblDesc, $lblM, $combo, $warnBox, $btnSkip, $btnGo))
+$ask.Controls.AddRange(@($lblQ, $lblDesc, $lblM, $combo, $lblE, $comboE, $warnBox, $btnSkip, $btnGo))
 # -WindowStyle Hidden 으로 시작된 프로세스는 첫 ShowWindow 가 '숨김'으로 바뀌므로 Hide/Show 로 되살린다 (모달 대신 Run 사용: Hide 시 모달이 닫히기 때문)
 $ask.Add_Shown({ $ask.Hide(); $ask.Show(); $ask.TopMost = $true; $ask.Activate(); Fill-Warn })
 [System.Windows.Forms.Application]::Run($ask)
 
 if (-not $script:go) { exit 0 }
 $Model = $modelKeys[$combo.SelectedIndex]
+$Effort = $effortKeys[$comboE.SelectedIndex]
 
 # 분석은 백그라운드 job에서 실행 (창이 먼저 뜨고 결과를 기다린다)
 # disableAllHooks: 분석용 claude 세션에서 이 훅과 다른 훅(알림창 등)이 다시 실행되지 않도록
-$job = Start-Job -ArgumentList $instruction, $Model -ScriptBlock {
-    param($text, $model)
+$job = Start-Job -ArgumentList $instruction, $Model, $Effort -ScriptBlock {
+    param($text, $model, $effort)
     [Console]::OutputEncoding = [Text.Encoding]::UTF8
     $OutputEncoding = [Text.Encoding]::UTF8
     Set-Location $env:TEMP
-    $text | claude -p --model $model --no-session-persistence --settings '{"disableAllHooks":true}' 2>&1
+    $text | claude -p --model $model --effort $effort --no-session-persistence --settings '{"disableAllHooks":true}' 2>&1
 }
 
 Add-Type -Namespace '' -Name Win32 -MemberDefinition '[DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h, int m, IntPtr w, IntPtr l);'
@@ -322,7 +334,7 @@ $timer.Add_Tick({
     if (-not $out) { $out = "## 오류`n- 분석 결과가 비어 있습니다. 터미널에서 claude -p 가 동작하는지 확인하세요." }
     $script:raw = $out
     Show-Review $out
-    $lblStatus.Text = "분석 완료 (${sec}초 · $Model)"
+    $lblStatus.Text = "분석 완료 (${sec}초 · $Model · $Effort)"
     $btnSave.Enabled = $true
     $btnSave.BackColor = & $c $Accent; $btnSave.FlatAppearance.BorderColor = & $c $Accent
 })
